@@ -35,6 +35,8 @@
 #include "eigen3/Eigen/Dense"
 #include "isaac_ros_common/vpi_utilities.hpp"
 
+#include <isaac_ros_common/qos.hpp>
+
 namespace nvidia
 {
 namespace isaac_ros
@@ -583,13 +585,22 @@ AprilTagNode::AprilTagNode(const rclcpp::NodeOptions & options)
     throw std::runtime_error(os.str());
   }
 
+  // Settings for QoS.
+  // const rclcpp::QoS input_qos =
+  //   isaac_ros::common::AddQosParameter(*this, kDefaultInputQos_, "input_qos");
+  // std::string input_qos_str = kDefaultInputQos_;
+  const rclcpp::QoS input_qos = rclcpp::QoS(rclcpp::SensorDataQoS());
+  std::string input_qos_str = "";
+  get_parameter("input_qos", input_qos_str);
+  const rmw_qos_profile_t input_qos_profile = input_qos.get_rmw_qos_profile();
+
   // Setup subscripts
   camera_image_sync_.registerCallback(
     std::bind(
       &AprilTagNode::CameraImageCallback, this, std::placeholders::_1,
       std::placeholders::_2));
-  image_sub_.subscribe(this, "image");
-  camera_info_sub_.subscribe(this, "camera_info");
+  image_sub_.subscribe(this, "image", input_qos_profile);
+  camera_info_sub_.subscribe(this, "camera_info", input_qos_profile);
 }
 
 void AprilTagNode::CameraImageCallback(
